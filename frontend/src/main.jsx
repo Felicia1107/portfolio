@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
@@ -14,6 +13,8 @@ import {
   MapPin,
   CalendarDays,
   ExternalLink,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 import {
@@ -51,14 +52,14 @@ function Header() {
 
   return (
     <header className="top">
-      <a className="logo" href="/#top">
-  <span className="logo-lastname">
-    {SITE.name.split(' ')[0]}
-  </span>
-  <span className="logo-firstname">
-    {SITE.name.split(' ').slice(1).join(' ')}
-  </span>
-</a>
+      <a className="logo" href="#top">
+        <span className="logo-lastname">
+          {SITE.name.split(' ')[0]}
+        </span>
+        <span className="logo-firstname">
+          {SITE.name.split(' ').slice(1).join(' ')}
+        </span>
+      </a>
 
       <button
         className="icon-btn menu-btn"
@@ -69,23 +70,23 @@ function Header() {
       </button>
 
       <nav className={menuOpen ? 'open' : ''}>
-        <a href="/#experiences" onClick={closeMenu}>
+        <a href="#experiences" onClick={closeMenu}>
           Expériences
         </a>
 
-        <a href="/#projets" onClick={closeMenu}>
+        <a href="#projets" onClick={closeMenu}>
           Projets
         </a>
 
-        <a href="/#competences" onClick={closeMenu}>
+        <a href="#competences" onClick={closeMenu}>
           Compétences
         </a>
 
-        <a href="/#formation" onClick={closeMenu}>
+        <a href="#formation" onClick={closeMenu}>
           Formation
         </a>
 
-        <a href="/#contact" onClick={closeMenu}>
+        <a href="#contact" onClick={closeMenu}>
           Contact
         </a>
 
@@ -371,7 +372,7 @@ function EducationSection() {
 function ProjectCard({ project }) {
   return (
     <li>
-      <a href={`/projet/${project.id}`}>
+      <a href={`#/projet/${project.id}`}>
         <span className="year">{project.year}</span>
 
         <span className="p-main">
@@ -421,10 +422,10 @@ function ContactForm() {
     setSending(true);
 
     try {
+      // En ligne : appel relatif vers /api/contact (backend Vercel).
+      // En local : définir VITE_API_URL=http://localhost:5000 dans frontend/.env
       const response = await fetch(
-        `${
-          import.meta.env.VITE_API_URL || 'http://localhost:5000'
-        }/api/contact`,
+        `${import.meta.env.VITE_API_URL || ''}/api/contact`,
         {
           method: 'POST',
           headers: {
@@ -532,7 +533,6 @@ function Home() {
   return (
     <>
       <section className="hero" id="top">
-        
         <h1 className="hero-title">
           Développeuse Full Stack
           <br />
@@ -563,8 +563,6 @@ function Home() {
             Me contacter
           </a>
         </div>
-
-        
       </section>
 
       <ExperiencesSection />
@@ -647,6 +645,88 @@ function Home() {
 
 
 // ==============================
+// SLIDER D'IMAGES
+// ==============================
+
+function ImageSlider({ images, title }) {
+  const [current, setCurrent] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  const total = images.length;
+
+  useEffect(() => {
+    const reduceMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    ).matches;
+
+    if (total < 2 || paused || reduceMotion) return;
+
+    const timer = setInterval(() => {
+      setCurrent((i) => (i + 1) % total);
+    }, 4000);
+
+    return () => clearInterval(timer);
+  }, [total, paused]);
+
+  const goTo = (index) => setCurrent((index + total) % total);
+
+  return (
+    <div
+      className="slider"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
+    >
+      {images.map((src, index) => (
+        <img
+          key={src}
+          src={src}
+          className={`slide ${index === current ? 'active' : ''}`}
+          alt={`Aperçu ${index + 1} du projet ${title}`}
+          loading={index === 0 ? 'eager' : 'lazy'}
+        />
+      ))}
+
+      {total > 1 && (
+        <>
+          <button
+            type="button"
+            className="slider-btn prev"
+            aria-label="Image précédente"
+            onClick={() => goTo(current - 1)}
+          >
+            <ChevronLeft size={20} />
+          </button>
+
+          <button
+            type="button"
+            className="slider-btn next"
+            aria-label="Image suivante"
+            onClick={() => goTo(current + 1)}
+          >
+            <ChevronRight size={20} />
+          </button>
+
+          <div className="slider-dots">
+            {images.map((src, index) => (
+              <button
+                key={src}
+                type="button"
+                className={index === current ? 'active' : ''}
+                aria-label={`Aller à l'image ${index + 1}`}
+                onClick={() => goTo(index)}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+
+// ==============================
 // PAGE DÉTAIL D'UN PROJET
 // ==============================
 
@@ -670,7 +750,7 @@ function ProjectPage({ id }) {
         </p>
 
         <div className="actions">
-          <a className="btn" href="/#projets">
+          <a className="btn" href="#projets">
             Voir tous les projets
           </a>
         </div>
@@ -683,10 +763,12 @@ function ProjectPage({ id }) {
 
   const next = PROJECTS[(index + 1) % PROJECTS.length];
 
+  const slides = [project.image, ...(project.images || [])].filter(Boolean);
+
   return (
     <>
       <section className="hero">
-        <a className="back" href="/#projets">
+        <a className="back" href="#projets">
           ← Tous les projets
         </a>
 
@@ -696,12 +778,14 @@ function ProjectPage({ id }) {
 
         <p className="lead">{project.summary}</p>
 
-        <div
-          className="cover"
-          style={{ background: project.color }}
-        >
-          <span>{project.title}</span>
-        </div>
+        {/* Slider d'images (ou bloc coloré si aucune image) */}
+        {slides.length > 0 ? (
+          <ImageSlider images={slides} title={project.title} />
+        ) : (
+          <div className="cover" style={{ background: project.color }}>
+            <span>{project.title}</span>
+          </div>
+        )}
       </section>
 
       <section>
@@ -746,11 +830,11 @@ function ProjectPage({ id }) {
       </section>
 
       <section className="pager">
-        <a href={`/projet/${previous.id}`}>
+        <a href={`#/projet/${previous.id}`}>
           ← {previous.title}
         </a>
 
-        <a href={`/projet/${next.id}`}>
+        <a href={`#/projet/${next.id}`}>
           {next.title} →
         </a>
       </section>
@@ -764,9 +848,16 @@ function ProjectPage({ id }) {
 // ==============================
 
 function App() {
-  const path = window.location.pathname;
+  const [hash, setHash] = useState(window.location.hash);
 
-  const projectMatch = path.match(/^\/projet\/([^/]+)/);
+  useEffect(() => {
+    const onHashChange = () => setHash(window.location.hash);
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  // Les pages projet ont une adresse du type  #/projet/mon-projet
+  const projectMatch = hash.match(/^#\/projet\/([^/]+)/);
 
   const projectId = projectMatch
     ? decodeURIComponent(projectMatch[1])
@@ -775,8 +866,19 @@ function App() {
   useEffect(() => {
     if (!projectId) {
       document.title = `${SITE.name} – Portfolio`;
+    } else {
+      window.scrollTo(0, 0);
     }
   }, [projectId]);
+
+  // Quand on revient à l'accueil avec #projets, #contact, etc.
+  useEffect(() => {
+    if (!projectId && hash && !hash.startsWith('#/')) {
+      setTimeout(() => {
+        document.querySelector(hash)?.scrollIntoView();
+      }, 0);
+    }
+  }, [projectId, hash]);
 
   return (
     <>
